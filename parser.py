@@ -16,6 +16,7 @@ HEADERS = {
 }
 
 PARSER_TEST_LIMIT = 2
+PARSER_ITEM_TEST_LIMIT = 10
 
 url = 'http://forums.magictraders.com/memberlist.cgi'
 req = requests.get(url, headers=HEADERS).text
@@ -106,7 +107,7 @@ def parse():
 
     logger.success(f'Profiles urls collected { len(totalProfileUrls) }')
     
-    for profileUrl in totalProfileUrls[:5]:
+    for profileUrl in totalProfileUrls[:PARSER_ITEM_TEST_LIMIT]:
         data = parseProfile(profileUrl)
         logger.debug(data['name'])
         logger.debug(data['email'])

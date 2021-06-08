@@ -16,12 +16,7 @@ HEADERS = {
 }
 
 PARSER_TEST_LIMIT = 2
-PARSER_ITEM_TEST_LIMIT = 10
-
-url = 'http://forums.magictraders.com/memberlist.cgi'
-req = requests.get(url, headers=HEADERS).text
-soup = BS(req, 'lxml')
-
+PARSER_ITEM_TEST_LIMIT = 20
 
 def parseProfile(url):
     req = requests.get(url, headers=HEADERS).text
@@ -87,9 +82,15 @@ def collectLettersUrls(siteUrl):
 
 def parse():
     letterUrls = collectLettersUrls('http://forums.magictraders.com/memberlist.cgi?page=1&sortby=&letter=X')
-    
+    df = pd.DataFrame(columns=['Name', 'Email'])
+
+    if PARSER_TEST_LIMIT < len(letterUrls):
+        limit = PARSER_TEST_LIMIT
+    else:
+        limit = len(letterUrls)
+
     totalPageUrls = []
-    for letterUrl in letterUrls[:PARSER_TEST_LIMIT]:
+    for letterUrl in letterUrls[:limit]:
         logger.info(f'Current letter - { letterUrl }')
         pageUrls = collectLetterPageUrls(letterUrl)
         for pageUrl in pageUrls:
@@ -97,19 +98,35 @@ def parse():
         logger.debug(f'Current pages length - { len(totalPageUrls) }')
 
     logger.success(f'\nPage urls collected!\nTotal urls - { len(totalPageUrls) }')
+    
+    if PARSER_TEST_LIMIT < len(totalPageUrls):
+        limit = PARSER_TEST_LIMIT
+    else:
+        limit = len(totalPageUrls)
 
     totalProfileUrls = []
-    for pageUrl in totalPageUrls[:PARSER_TEST_LIMIT]:
+    for pageUrl in totalPageUrls[:limit]:
         profileUrls = collectPageUrls(pageUrl)
         for url in profileUrls:
             totalProfileUrls.append(url)
             #logger.debug(url)
 
     logger.success(f'Profiles urls collected { len(totalProfileUrls) }')
-    
-    for profileUrl in totalProfileUrls[:PARSER_ITEM_TEST_LIMIT]:
-        data = parseProfile(profileUrl)
-        logger.debug(data['name'])
-        logger.debug(data['email'])
 
-parse()
+    if PARSER_ITEM_TEST_LIMIT < len(totalProfileUrls):
+        limit = PARSER_ITEM_TEST_LIMIT
+    else:
+        limit = len(totalProfileUrls)
+
+    for profileUrl in totalProfileUrls[:limit]:
+        data = parseProfile(profileUrl)
+        df = df.append({'Name': data['name'], 'Email': data['email']}, ignore_index=True)
+    return df
+
+df = parse()
+df.to_excel('collected.xlsx', engine='xlsxwriter')
+
+with open("collected.txt", "w") as file:
+    for index in range(len(df)):
+        data = (f"{df['Name'][index] } - { df['Email'][index] }\n")
+        file.write(data)

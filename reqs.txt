@@ -1,2 +1,3 @@
 loguru
 bs4
+requests
